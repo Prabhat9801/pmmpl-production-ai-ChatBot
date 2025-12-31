@@ -1,0 +1,9 @@
+test_id,query,status,confidence,rows,answer,error
+BASIC-RETRIEVE-1,Show me all FG Stock,ERROR,0,0,,Planning failed: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kbdx7tzafbnr6x
+BASIC-RETRIEVE-2,List all pending orders,ERROR,0,0,,Planning failed: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kbdx7tzafbnr6x
+BASIC-RETRIEVE-3,Show tasks assigned to Ahitesh Tandan,ERROR,0,0,,Planning failed: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kbdx7tzafbnr6x
+BASIC-RETRIEVE-4,Display products with stock level greater than 5,ERROR,0,0,,Planning failed: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kbdx7tzafbnr6x
+BASIC-RETRIEVE-5,Show orders for Party Name containing 'THERMAL',ERROR,0,0,,Planning failed: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kbdx7tzafbnr6x
+FILTER-1,Show orders where Pending Qty is greater than 100,ERROR,0,0,,Planning failed: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kbdx7tzafbnr6x
+FILTER-2,List products where Current Level is less than 5,ERROR,0,0,,Planning failed: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kbdx7tzafbnr6x
+FILTER-3,Show payments with status 'Pending',ERROR,0,0,,Planning failed: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kbdx7tzafbnr6x

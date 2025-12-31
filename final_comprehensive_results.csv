@@ -1,0 +1,74 @@
+test_id,category,query,status,confidence,rows,answer,error
+BASIC-RETRIEVE-1,BASIC,Show me all FG Stock,PASS,0.9,104,"The FG Stock consists of 104 products with varying current levels, ranging from -0.84 to 31. The average current level is 2.09, with 50% of the products having a current level of 0. Notable products w",
+BASIC-RETRIEVE-2,BASIC,List all pending orders,PASS,1.0,33,"Here's the response:
+
+There are 33 pending orders in total, with a mean quantity of 313.75 and a mean rate of material of 30697.58. The pending orders are from various parties, including Rungta Mines ",
+BASIC-RETRIEVE-3,BASIC,Show tasks assigned to Ahitesh Tandan,PASS,1.0,142,"Ahitesh Tandan has been assigned a total of 142 tasks, with the first 5 tasks being related to ""Clean Fms Index PMMPL"" given by Kavit Sir. The tasks are scheduled to start on different dates, includin",
+BASIC-RETRIEVE-4,BASIC,Display products with stock level greater than 5,PASS,0.9,13,"Here's the response:
+
+The products with a stock level greater than 5 are 12 out of the 13 products listed, with the lowest stock level being 5.65 for High Cast Super. The products with the highest sto",
+BASIC-RETRIEVE-5,BASIC,Show orders for Party Name containing 'THERMAL',ERROR,0.0,0,,No data matched the query
+FILTER-1,FILTER,Show orders where Pending Qty is greater than 100,PASS,1.0,5,"There are 5 orders where the Pending Qty is greater than 100, with the highest pending quantity being 580.0 for order DO-2229 with party Singhal Steel & Power Pvt. Ltd. The other orders with pending q",
+FILTER-2,FILTER,List products where Current Level is less than 5,PASS,0.9,91,"The products where the Current Level is less than 5 are all 91 products listed, as the maximum Current Level is 3.35, which is below the threshold of 5. Specifically, products like 90 S, 95 S, Burner ",
+FILTER-3,FILTER,Show payments with status 'Pending',ERROR,0.0,0,,Execution failed: 'DataFrame' object has no attribute 'dtype'
+FILTER-4,FILTER,Display tasks where Status is 'Complete',ERROR,0.0,0,,No data matched the query
+FILTER-5,FILTER,Show orders placed after 2025-01-01,PASS,1.0,1028,"The provided data does not contain any orders placed after 2025-01-01, as the timestamps in the sample data range from 24/12/2022. Therefore, there are no orders to show that meet the specified criter",
+AGG-COUNT-1,AGG,How many products are in FG Stock?,PASS,0.9,1,"There are 104 products in FG Stock. This information is based on the aggregation result, which counted the total number of products. The data analysis confirms that the FG Stock contains a specific qu",
+AGG-COUNT-2,AGG,Count total pending orders,PASS,0.9,1,"There are 33 total pending orders. This count is based on the aggregation result, which analyzed the complete data to determine the total number of pending orders. The data analysis confirms that ther",
+AGG-COUNT-3,AGG,How many tasks are assigned to each person?,PASS,0.9,1,"The data analysis results indicate that there is a total count of tasks, but it does not provide a breakdown of tasks assigned to each person. However, according to the complete data, there are 8031 t",
+AGG-COUNT-4,AGG,Count orders by Party Name,PASS,0.9,1,"The Party Name has a total of 33 orders. This count provides a clear overview of the number of orders associated with this specific party. The data analysis reveals a single aggregation result, focusi",
+AGG-COUNT-5,AGG,How many products have stock level below 5?,PASS,0.9,1,There are 91 products with a stock level below 5. This indicates that a significant portion of the inventory is running low. The data suggests that restocking or replenishment efforts may be necessary,
+AGG-SUM-1,AGG,What is the total pending quantity?,PASS,0.9,1,"The total pending quantity is 54,753.0. This value is based on the aggregation result of the complete data, which summed up the quantities to provide the total pending amount. The data analysis confir",
+AGG-SUM-2,AGG,Sum of all FG Stock levels,PASS,0.9,1,"The sum of all FG Stock levels is 216.917. This result is based on the aggregation of the complete data, which consisted of a single row with a SUM_Current Level value. The total stock level provides ",
+AGG-SUM-3,AGG,Total value of pending orders,PASS,0.9,1,"The total value of pending orders is $10353.6. This is based on the aggregation result, which summed up the quantities of all pending orders. The result provides a clear overview of the current pendin",
+AGG-SUM-4,AGG,Sum pending qty for each product,PASS,0.9,1,The sum of pending quantity for each product is 2751.06. This result is based on the aggregation of the pending quantities across all products. The total pending quantity provides an overview of the c,
+AGG-SUM-5,AGG,Total quantity ordered for Liquid Binder,PASS,0.9,1,"The total quantity ordered for Liquid Binder is 800.0 units. This result is based on the aggregation of the complete data, which consisted of a single row. The data analysis provides a clear and conci",
+AGG-AVG-1,AGG,What is the average pending quantity?,PASS,0.9,1,"The average pending quantity is 2105.884615. This value is based on the aggregation result of the complete data, which consists of a single row with one column, AVG_Quantity. The calculation provides ",
+AGG-MAX-1,AGG,What is the maximum stock level?,PASS,0.9,1,The maximum stock level is 31.0. This value represents the highest current level of stock recorded in the data. The analysis was performed using an aggregate operation to determine this maximum value.,
+AGG-MIN-1,AGG,What is the minimum pending quantity?,PASS,0.9,1,"The minimum pending quantity is 5.0. This value is based on the aggregation result of the complete data, which consists of 1 row and 1 column, specifically the MIN_Quantity column. The data analysis r",
+AGG-AVG-2,AGG,Average order quantity by product,PASS,0.9,1,"The average order quantity by product is approximately 313.75. This suggests that, on average, customers tend to order around 314 units of a product per order. The data analysis provides a clear insig",
+AGG-MAX-2,AGG,Highest value order,PASS,1.0,1,The top product is: Ceramic Paper 05 MM PCS,
+COMPARE-1,COMPARE,Compare FG Stock levels with pending orders,PASS,1.0,14,"The current FG stock levels are relatively low, with a mean of 7.29, compared to the pending orders, which have a mean of 51.70. This discrepancy suggests that the stock levels may not be sufficient t",
+COMPARE-2,COMPARE,Show products where pending quantity exceeds stock,PASS,1.0,14,"The products where pending quantity exceeds stock are all 14 products listed, as indicated by the 'Can_Fulfill' column being 'False' for all rows. This suggests that none of the products have sufficie",
+COMPARE-3,COMPARE,Match products between stock and orders,PASS,1.0,14,"To match products between stock and orders, we need to compare the ""Current Level"" in the stock sheet with the ""Pending Qty"" in the orders sheet. Based on the data, products like ""LC - 70"" and ""LCM - ",
+FEASIBILITY-1,FEASIBILITY,Can we fulfill all pending orders?,PASS,1.0,14,"**Direct Answer:** 
+No, we cannot fulfill all pending orders. The data shows that all 14 products have a ""Can_Fulfill"" status of False, indicating a shortage. The average gap between the current level",
+FEASIBILITY-2,FEASIBILITY,Do we have enough stock for Liquid Binder orders?,ERROR,0.0,0,,No data matched the query
+FEASIBILITY-3,FEASIBILITY,Which orders can't be fulfilled with current stock?,PASS,1.0,14,"Based on the feasibility analysis, orders for all 14 products cannot be fulfilled with the current stock, as indicated by the ""Can_Fulfill"" column being ""False"" for all rows. The products with the lar",
+RANK-1,RANK,Top 5 products by pending quantity,PASS,1.0,5,"The top 5 products are: Liquid Binder, Ceramic Paper 05 MM PCS, Ceramic Anchor Brick 365, Pasheat - C, Dura Special",
+RANK-2,RANK,Which product has the highest stock level?,PASS,1.0,1,The top product is: LCM 75 AR HS WITH 1% SS FIBER,
+RANK-3,RANK,Bottom 3 products by stock,PASS,1.0,3,"The top 3 products are: LCM - 75 AR, LCM - 70, LC 4 A",
+RANK-4,RANK,Top 10 orders by quantity,PASS,1.0,10,"The top 10 products are: Ceramic Paper 05 MM PCS, Ceramic Anchor Brick 365, Liquid Binder, Liquid Binder, Pasheat - C, Hysil Block, Dura Special, LCM - 70 AR, LCM - 70 AR, High Cast Super",
+RANK-5,RANK,Show products ranked by pending demand,PASS,1.0,10,"The top 10 products are: Liquid Binder, Ceramic Paper 05 MM PCS, Ceramic Anchor Brick 365, Pasheat - C, Dura Special, High Cast Super, LCM - 70 AR, Dura Cast, Pas Phoscast - 90 XR With 6% Phosphoric A",
+DATE-1,DATE,Orders placed in the last 30 days,PASS,1.0,1027,"**Direct Answer:** 
+There were 1027 orders placed in the last 30 days, with a total quantity of 821,192 units and an average rate of material of ₹29,041. The orders were primarily from Suryadev Alloys",
+DATE-2,DATE,Show orders from December 2025,ERROR,0.0,0,,No data matched the query
+DATE-3,DATE,Count orders by month,PASS,0.9,1,"The total number of orders is 33. To count orders by month, we would need more detailed data, but based on the provided aggregation result, we can confirm that there are 33 orders in total. Unfortunat",
+DATE-4,DATE,Recent orders (last week),ERROR,0.0,0,,No data matched the query
+TREND-1,TREND,Show order trend over time,PASS,0.9,37,"The order trend over time shows a fluctuating pattern, with an average of 47.89 orders per month. The highest number of orders was 78 in one of the months, while the lowest was 23. The data covers 37 ",
+TREND-2,TREND,Payment patterns in last 60 days,ERROR,0.0,0,,Execution failed: 'DataFrame' object has no attribute 'dtype'
+TREND-3,TREND,Production trend this month,PASS,0.9,36,"The production trend this month is not explicitly stated in the data, as the latest month available is May 2023. However, based on the available data, the average production count is 23.64. The produc",
+PREDICT-1,PREDICT,Which products will run out of stock soon?,PASS,1.0,11,"Based on the feasibility analysis, products such as Fire Crete Super, High Cast Super, and Pasheat - C are likely to run out of stock soon, with gaps of -32.41, -90.10, and -164.71, respectively. Thes",
+PREDICT-2,PREDICT,Estimate stock depletion timeline,PASS,1.0,374,"The estimated stock depletion timeline is approximately 8.15 days, based on the average days until depletion across all products. This estimate is influenced by the current level of stock, pending qua",
+COMPLEX-1,COMPLEX,Show products with stock below 10 AND pending orders,PASS,0.6,16,"Found 16 matching records. Top result: {'Product Name': 'High Cast Super', 'Current Level': 5.65, 'Timestamp': '12/04/2025 16:06:50', 'DO-Delivery Order No.': 'DO-2227', 'PARTY PO NO (As Per Po Exact)",
+COMPLEX-2,COMPLEX,Orders from THERMAL with pending qty > 50,ERROR,0.0,0,,No data matched the query
+COMPLEX-3,COMPLEX,High priority items: low stock + high demand,PASS,1.0,9,"Based on the data analysis, high priority items with low stock and high demand are those with a Current Level below the 25th percentile (0.77) and a Pending Qty above the 75th percentile (30.00). Spec",
+GROUP-1,GROUP,Group orders by party name,PASS,1.0,10,"The top 10 products are: Pas Phoscast - 90 XR With 6% Phosphoric Acid, Liquid Binder, Liquid Binder, Pas Phoscast - 90 XR With 6% Phosphoric Acid, LCM - 75 AR With 1% SS Fiber, Pasheat - C, LCM - 70 A",
+GROUP-2,GROUP,Summarize stock by product category,PASS,0.9,1,"The total stock across all product categories is 216.917 units. This aggregate result provides a comprehensive overview of the current stock levels. The data analysis reveals a single, overall sum of ",
+GROUP-3,GROUP,Count tasks by status,PASS,0.9,1,"The total count of tasks by status is 8031. This number represents the aggregate count of tasks across all statuses. The data analysis results provide a single, overall count of tasks.
+
+Key insights f",
+LOOKUP-1,LOOKUP,What is the stock level of Insulyte - 11?,PASS,0.9,1,The current stock level of Insulyte - 11 is 11.6 units. This information is based on the retrieval of data for the product. The data analysis results provide a clear and up-to-date picture of the stoc,
+LOOKUP-2,LOOKUP,Find pending quantity for DO-8532,ERROR,0.0,0,,"Execution failed: 
+╔══════════════════════════════════════════════════════════════════
+║ ❌ PANDAS QUERY EXECUTION FAILED
+╠══════════════════════════════════════════════════════════════════
+║ Original "
+LOOKUP-3,LOOKUP,Show details of order DO-8532,ERROR,0.0,0,,"Execution failed: 
+╔══════════════════════════════════════════════════════════════════
+║ ❌ PANDAS QUERY EXECUTION FAILED
+╠══════════════════════════════════════════════════════════════════
+║ Original "
+RATIO-1,RATIO,What percentage of orders can be fulfilled?,PASS,1.0,14,"**Direct Answer:** 
+Based on the feasibility analysis, none of the orders can be fulfilled as indicated by the 'Can_Fulfill' column, which is False for all 14 products. This suggests that the current ",
+RATIO-2,RATIO,Stock to demand ratio for each product,PASS,1.0,14,"To calculate the stock to demand ratio for each product, we need to divide the Current Level by the Pending Qty. Based on the data, the stock to demand ratio ranges from -0.05/15.00 = -0.003 for LCM -",
