@@ -23,7 +23,6 @@ let currentSessionId = null;
 let sessions = [];
 let isLoadingSession = false;
 let currentStreamingMessage = null;
-let thinkingIndicator = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -288,7 +287,7 @@ async function streamTextClaudeStyle(text, messageId) {
             // Fast delays - much quicker streaming
             let delay;
             if (token.match(/[.!?]/)) {
-                delay = 25 + Math.random() * 15; // Short pause at sentence end
+                delay = 20 + Math.random() * 15; // Short pause at sentence end
             } else {
                 delay = 5 + Math.random() * 5; // Very fast for words
             }
@@ -326,7 +325,7 @@ function formatBotMessage(text) {
     // Convert inline code `code`
     formattedText = formattedText.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
     
-    // Convert markdown headers (must be on new line) - order matters: ### before ## before #
+    // Convert markdown headers (must be on new line) - order matters: #### before ### before ## before #
     formattedText = formattedText.replace(/^####\s+(.+)$/gm, '<h4 class="md-h4">$1</h4>');
     formattedText = formattedText.replace(/^###\s+(.+)$/gm, '<h3 class="md-h3">$1</h3>');
     formattedText = formattedText.replace(/^##\s+(.+)$/gm, '<h2 class="md-h2">$1</h2>');
