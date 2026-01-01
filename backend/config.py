@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     
     # API Keys
     GROQ_API_KEY: str
+    LANGSMITH_API_KEY: Optional[str] = None
     GOOGLE_SHEETS_CREDENTIALS_PATH: str
     GOOGLE_SHEET_NAME: str = "Copy of PMMPL AI (Prabhat)"
     

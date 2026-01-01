@@ -1,4 +1,25 @@
-# Python
+# ============================================
+# PMMPL Production AI ChatBot - .gitignore
+# ============================================
+
+# ============================================
+# SECRETS (CRITICAL - NEVER COMMIT!)
+# ============================================
+.env
+*.json
+credentials.json
+pmmpl-sheet-rag-*.json
+
+# ============================================
+# JUPYTER NOTEBOOK
+# ============================================
+Untitled50.ipynb
+*.ipynb
+.ipynb_checkpoints/
+
+# ============================================
+# PYTHON
+# ============================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -7,32 +28,38 @@ __pycache__/
 venv/
 env/
 ENV/
-backend\.env
-*.txt
 
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb_checkpoints
+# ============================================
+# DATABASE
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+chat_history.db
 
-# Google Credentials (CRITICAL - DON'T COMMIT!)
-*.json
-pmmpl-sheet-rag-*.json
+# ============================================
+# TEST FILES
+# ============================================
+*.csv
+*.xlsx
+replace.txt
 
-# API Keys (CRITICAL!)
-.env
-*.key
+# ============================================
+# LOGS
+# ============================================
+*.log
 
-# VS Code
+# ============================================
+# IDE / EDITOR
+# ============================================
 .vscode/
+.idea/
 *.code-workspace
+*.swp
+*.swo
 
-# OS
+# ============================================
+# OS FILES
+# ============================================
 .DS_Store
 Thumbs.db
-
-# Test results
-*.csv
-final_comprehensive_results.csv
-
-# Logs
-*.log
