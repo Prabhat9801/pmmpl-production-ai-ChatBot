@@ -256,44 +256,47 @@ async function streamTextClaudeStyle(text, messageId) {
     
     const messageText = currentStreamingMessage.textElement;
     
-    // Split text into words and punctuation
-    const tokens = text.match(/[\w']+|[.,!?;:\n\-—–()[\]{}"""''`…]+|\s+/g) || [text];
+    // Split by characters for smoother streaming with markdown support
+    const chars = text.split('');
     let displayedText = '';
-    let tokenCount = 0;
+    let charCount = 0;
     
-    for (let i = 0; i < tokens.length; i++) {
+    for (let i = 0; i < chars.length; i++) {
         if (!currentStreamingMessage || currentStreamingMessage.id !== messageId || !currentStreamingMessage.isStreaming) break;
         
-        const token = tokens[i];
-        displayedText += token;
-        tokenCount++;
+        const char = chars[i];
+        displayedText += char;
+        charCount++;
         
-        // Update every 3-4 tokens for faster streaming
+        // Update more frequently for smoother streaming
         const shouldUpdate = 
-            i === tokens.length - 1 || // Last token
-            token.match(/[.!?\n]/) || // Major punctuation only
-            tokenCount >= 3; // Update every 3 tokens
+            i === chars.length - 1 || // Last character
+            char === '\n' || // Always update on newlines (important for markdown)
+            char.match(/[.!?]/) || // Sentence endings
+            charCount >= 8; // Update every 8 characters
         
         if (shouldUpdate) {
             currentStreamingMessage.fullText = displayedText;
             
-            // Format and render
+            // Format and render with markdown
             const formattedText = formatBotMessage(displayedText);
             messageText.innerHTML = formattedText;
             
             // Smooth scroll
             smoothScrollToBottom();
             
-            // Fast delays - much quicker streaming
+            // Fast delays
             let delay;
-            if (token.match(/[.!?]/)) {
-                delay = 20 + Math.random() * 15; // Short pause at sentence end
+            if (char === '\n') {
+                delay = 15; // Brief pause at newlines
+            } else if (char.match(/[.!?]/)) {
+                delay = 20 + Math.random() * 10; // Short pause at sentence end
             } else {
-                delay = 5 + Math.random() * 5; // Very fast for words
+                delay = 3 + Math.random() * 3; // Very fast for characters
             }
             
             await sleep(delay);
-            tokenCount = 0;
+            charCount = 0;
         }
     }
     
@@ -330,6 +333,25 @@ function formatBotMessage(text) {
     formattedText = formattedText.replace(/^###\s+(.+)$/gm, '<h3 class="md-h3">$1</h3>');
     formattedText = formattedText.replace(/^##\s+(.+)$/gm, '<h2 class="md-h2">$1</h2>');
     formattedText = formattedText.replace(/^#\s+(.+)$/gm, '<h1 class="md-h1">$1</h1>');
+    
+    // Auto-detect title patterns (lines that look like titles - short, no punctuation at end, followed by content)
+    // Match lines that are short (under 60 chars), don't end with punctuation, and are followed by a newline
+    formattedText = formattedText.replace(/^([A-Z][A-Za-z0-9\s:&\-–—]+(?:vs\.?|vs|and|&)?[A-Za-z0-9\s:&\-–—]*)$/gm, function(match, title) {
+        title = title.trim();
+        // Only convert if it looks like a title (short, capitalized, no ending punctuation)
+        if (title.length > 5 && title.length < 80 && !title.match(/[.!?,;]$/) && title.match(/^[A-Z]/)) {
+            // Check if it contains "Overview", "Highlights", "Details", "Comparison", "Summary", "Breakdown" etc.
+            if (title.match(/(Overview|Highlights|Details|Comparison|Summary|Breakdown|Analysis|Key|Total|Orders|Pending|Complete|Status|vs\.?|:)/i)) {
+                // Main title (like "Pending Orders Overview")
+                if (title.match(/(Overview|Comparison|Summary|Analysis|vs\.?)/i) && title.length < 50) {
+                    return `<h2 class="md-h2 md-title">${title}</h2>`;
+                }
+                // Subtitle (like "Key Highlights", "Order Details")
+                return `<h3 class="md-h3 md-subtitle">${title}</h3>`;
+            }
+        }
+        return match;
+    });
     
     // Convert horizontal rules
     formattedText = formattedText.replace(/^---+$/gm, '<hr class="md-hr">');

@@ -411,6 +411,29 @@ body {
     margin-top: 0;
 }
 
+/* Auto-detected titles */
+.message-text .md-title {
+    color: var(--primary-color);
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.message-text .md-subtitle {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.25rem 0 0.5rem 0;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.message-text .md-title:first-child {
+    margin-top: 0;
+}
+
 /* Blockquote */
 .message-text .md-blockquote {
     border-left: 4px solid var(--primary-color);
