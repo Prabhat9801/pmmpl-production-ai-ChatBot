@@ -162,12 +162,16 @@ pip install -r requirements.txt
 3. Name it (e.g., `pmmpl-production-ai`)
 4. Click **"Create"**
 
-### Step 2: Enable Google Sheets API
+### Step 2: Enable Google Sheets API & Google Drive API
 
 1. In your project, go to **APIs & Services** → **Library**
 2. Search for **"Google Sheets API"**
-3. Click **Enable**
-4. Also enable **"Google Drive API"**
+3. Click on it and click **Enable**
+4. Go back to **Library**
+5. Search for **"Google Drive API"**
+6. Click on it and click **Enable**
+
+> ⚠️ **Important:** Both APIs must be enabled for the application to work properly. Google Drive API is required to access and list Google Sheets files.
 
 ### Step 3: Create Service Account
 
