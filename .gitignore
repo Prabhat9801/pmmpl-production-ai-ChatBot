@@ -14,7 +14,7 @@ pmmpl-sheet-rag-*.json
 # JUPYTER NOTEBOOK
 # ============================================
 Untitled50.ipynb
-*.ipynb
+
 .ipynb_checkpoints/
 
 # ============================================
