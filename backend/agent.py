@@ -732,10 +732,14 @@ IMPORTANT: The sheets above show ALL actual column names. You MUST use these EXA
 SHEET INTENT MAPPINGS (understand what user means):
 - "completed tasks" or "tasks done" → Checklist sheet (filter: Status == 'Completed')
 - "pending tasks" or "tasks to do" → Checklist sheet (filter: Status == 'Pending')  
-- "pending orders" → Orders Pending sheet (filter: `Pending Qty` > 0)
+- "pending orders" → Orders Pending sheet (filter: `Pending Qty` > 0 AND Status == 'Pending')
+- "pending orders for [party]" → Orders Pending sheet (filter: `Party Names`.str.contains('party_name', case=False) & (`Pending Qty` > 0))
+- "compare pending orders of X and Y" → Orders Pending sheet (filter: `Party Names`.str.contains('X|Y', case=False) & (`Pending Qty` > 0))
 - "stock" or "inventory" → FG Stock sheet
 - "products" → use Product Name column (check actual name in sheet)
 - "party" or "customer" → use Party Names or similar column (check actual name in sheet)
+- "revenue" or "sales" → Sales Invoices sheet (calculate Quantity × Rate or use Amount column)
+- "total revenue by product" → Sales Invoices sheet with aggregation by Product Name
 
 QUERY TYPES YOU MUST HANDLE:
 
@@ -745,14 +749,17 @@ QUERY TYPES YOU MUST HANDLE:
 2. **AGGREGATION**: COUNT, SUM, AVG, MAX, MIN, TOTAL
    Example: "Total pending payment amount" → {{"sheets": ["Payments"], "operation": "aggregate", "agg_function": "SUM", "agg_column": "Amount", "filters": {{"Payments": "Status == 'Pending'"}}}}
 
-3. **COMPARISON**: Compare values across sheets (JOIN two sheets)
+3. **COMPARISON**: Compare values across sheets OR compare subsets within same sheet
    Example: "Show products with stock below 10 AND pending orders" → {{"sheets": ["FG Stock", "Orders Pending"], "operation": "compare", "join_key": "Product Name", "filters": {{"FG Stock": "`Current Level` < 10", "Orders Pending": "`Pending Qty` > 0"}}}}
+   Example: "Compare pending orders of Rungta and Singhal" → {{"sheets": ["Orders Pending"], "operation": "retrieve", "filters": {{"Orders Pending": "(`Party Names`.str.contains('Rungta|Singhal', case=False, na=False)) & (`Pending Qty` > 0)"}}}}
 
 4. **FEASIBILITY**: Check if something is possible
    Example: "Can we fulfill orders with current stock?" → {{"sheets": ["FG Stock", "Orders Pending"], "operation": "feasibility", "join_key": "Product Name", "check": "Current Level >= Pending Qty"}}
 
 5. **RANKING**: TOP N, BOTTOM N, ORDER BY
    Example: "Top 5 products by pending orders" → {{"sheets": ["Orders Pending"], "operation": "rank", "rank_by": "Pending Qty", "rank_order": "desc", "limit": 5}}
+   Example: "Which party has maximum pending orders?" → {{"sheets": ["Orders Pending"], "operation": "rank", "rank_by": "COUNT", "group_by": "Party Names", "rank_order": "desc", "limit": 10}}
+   Example: "Top customers by order count" → {{"sheets": ["Orders Pending"], "operation": "rank", "rank_by": "COUNT", "group_by": "Party Names", "rank_order": "desc", "limit": 5}}
 
 6. **TREND ANALYSIS**: Changes over time
    Example: "Orders trend last 30 days" → {{"sheets": ["Orders Pending"], "operation": "trend", "date_column": "Party PO Date", "date_range": "last 30 days", "group_by": "week"}}
@@ -1135,26 +1142,51 @@ Answer:"""
         return result
     
     def _execute_rank(self, dfs: dict, plan: dict) -> pd.DataFrame:
-        """Rank with product grouping"""
+        """Rank with smart grouping - supports Product Name, Party Names, etc."""
         df = dfs[list(dfs.keys())[0]].copy()
         
         rank_by = plan.get("rank_by")
         rank_order = plan.get("rank_order", "desc")
         limit = plan.get("limit", 10)
+        group_by = plan.get("group_by")  # New: explicit group_by field
         
         # Filter positive quantities
         if 'Pending Qty' in df.columns:
             df['Pending Qty'] = pd.to_numeric(df['Pending Qty'], errors='coerce')
             df = df[df['Pending Qty'] > 0]
         
+        ascending = (rank_order.lower() == "asc")
+        
+        # Handle COUNT-based ranking (e.g., "party with most orders")
+        if rank_by and rank_by.upper() == "COUNT":
+            # Determine what to group by
+            if group_by and group_by in df.columns:
+                group_col = group_by
+            elif 'Party Names' in df.columns:
+                group_col = 'Party Names'
+            elif 'Product Name' in df.columns:
+                group_col = 'Product Name'
+            else:
+                group_col = df.columns[0]
+            
+            df_grouped = df.groupby(group_col).size().reset_index(name='Order Count')
+            result = df_grouped.sort_values(by='Order Count', ascending=ascending).head(limit)
+            print(f"  ✓ Counted orders by {group_col}, top {limit}")
+            return result
+        
+        # Handle explicit group_by
+        if group_by and group_by in df.columns and rank_by and rank_by in df.columns:
+            df_grouped = df.groupby(group_by)[rank_by].sum().reset_index()
+            result = df_grouped.sort_values(by=rank_by, ascending=ascending).head(limit)
+            print(f"  ✓ Grouped by {group_by}, ranked by {rank_by}, top {limit}")
+            return result
+        
         # Group by Product if ranking by pending
         if rank_by and 'Pending' in rank_by and 'Product Name' in df.columns:
             df_grouped = df.groupby('Product Name')[rank_by].sum().reset_index()
-            ascending = (rank_order.lower() == "asc")
             result = df_grouped.sort_values(by=rank_by, ascending=ascending).head(limit)
             print(f"  ✓ Grouped by Product, ranked by {rank_by}, top {limit}")
         elif rank_by and rank_by in df.columns:
-            ascending = (rank_order.lower() == "asc")
             result = df.sort_values(by=rank_by, ascending=ascending).head(limit)
             print(f"  ✓ Ranked by {rank_by}, top {limit}")
         else:
@@ -1270,16 +1302,20 @@ Answer:"""
         finally:
             db.close()
     
-    def _check_cache(self, question: str, threshold: float = 0.98) -> Optional[Dict[str, Any]]:
+    def _check_cache(self, question: str, session_id: str = None, threshold: float = 0.98) -> Optional[Dict[str, Any]]:
         """
         Check if similar query exists in cache (98% similarity threshold - very strict).
+        Only checks cache within the same session to avoid cross-session confusion.
         Returns cached response if found, None otherwise.
         """
         from database import SessionLocal, QueryCache
         db = SessionLocal()
         try:
-            # Get all cached queries
-            cached_queries = db.query(QueryCache).all()
+            # Only check cache for queries in the same session
+            if session_id:
+                cached_queries = db.query(QueryCache).filter(QueryCache.session_id == session_id).all()
+            else:
+                cached_queries = db.query(QueryCache).all()
             
             if not cached_queries:
                 return None
@@ -1292,11 +1328,18 @@ Answer:"""
             best_similarity = 0.0
             
             for cached in cached_queries:
+                # Skip if it's the exact same question (would be 100% match)
+                if cached.query_text.strip().lower() == question.strip().lower():
+                    continue
+                    
                 cached_embedding = model.encode(cached.query_text)
                 similarity = cosine_similarity(
                     question_embedding.reshape(1, -1),
                     cached_embedding.reshape(1, -1)
                 )[0][0]
+                
+                # Debug: Log similarity check
+                print(f"  📊 Comparing with cached: '{cached.query_text[:50]}...' -> Similarity: {similarity:.2%}")
                 
                 if similarity > best_similarity and similarity >= threshold:
                     best_similarity = similarity
@@ -1364,6 +1407,13 @@ Answer:"""
         finally:
             db.close()
     
+    def _extract_current_question(self, question: str) -> str:
+        """Extract just the current question from a question that may include conversation context."""
+        if "Current question:" in question:
+            # Extract only the current question for caching
+            return question.split("Current question:")[-1].strip()
+        return question.strip()
+    
     def query(self, question: str, session_id: str = None) -> Dict[str, Any]:
         """
         Process a user question and return results.
@@ -1373,8 +1423,12 @@ Answer:"""
             dict with keys: answer, confidence, rows_found, data_preview, query_type
         """
         try:
-            # OPTIMIZATION 1: Check cache first (98% threshold - very strict to avoid wrong matches)
-            cached_response = self._check_cache(question, threshold=0.98)
+            # Extract ONLY the current question for caching (ignore conversation context)
+            cache_question = self._extract_current_question(question)
+            
+            # OPTIMIZATION 1: Check cache first (session-specific, 98% threshold)
+            # Use only the current question for cache lookup, not full context
+            cached_response = self._check_cache(cache_question, session_id=session_id, threshold=0.98)
             if cached_response:
                 return cached_response
             
@@ -1423,8 +1477,8 @@ Answer:"""
                 "show_table": show_table
             }
             
-            # OPTIMIZATION 3: Save to cache for future reuse
-            self._save_to_cache(question, response, session_id)
+            # OPTIMIZATION 3: Save to cache using ONLY the current question (not full context)
+            self._save_to_cache(cache_question, response, session_id)
             
             return response
             

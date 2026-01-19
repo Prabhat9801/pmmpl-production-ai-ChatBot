@@ -1,6 +1,7 @@
 /**
  * Frontend JavaScript for AI Data Assistant
  * Handles chat interactions, API calls, and UI updates with Claude-style streaming
+ * FIXED: Messages no longer disappear after streaming
  */
 
 // Configuration
@@ -24,8 +25,10 @@ let sessions = [];
 let isLoadingSession = false;
 let currentStreamingMessage = null;
 
-// Initialize
+// Initialize - only once
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('=== DOMContentLoaded fired ===');
+    console.log('Window location:', window.location.href);
     loadSessionsFromStorage();
     initializeSession();
     checkHealth();
@@ -93,11 +96,17 @@ async function checkHealth() {
 
 // Send message with Claude-style streaming
 async function sendMessage() {
+    console.log('=== sendMessage() called ===');
     const question = userInput.value.trim();
-    if (!question || isProcessing) return;
+    console.log('Question:', question);
+    if (!question || isProcessing) {
+        console.log('Skipping - empty question or already processing');
+        return;
+    }
     
-    // Add user message to chat
+    // Add user message to chat AND save to session immediately
     addMessageToUI(question, 'user');
+    saveMessageToSession(question, 'user', {});
     
     // Clear input
     userInput.value = '';
@@ -106,6 +115,7 @@ async function sendMessage() {
     
     // Set processing state
     isProcessing = true;
+    console.log('Processing started...');
     
     // Show thinking indicator while waiting for response
     showThinkingIndicator();
@@ -115,6 +125,7 @@ async function sendMessage() {
     try {
         // Get conversation context
         const conversationContext = getConversationContext();
+        console.log('Calling API...');
         
         // Call API with context
         const response = await fetch(`${API_BASE_URL}/chat`, {
@@ -135,44 +146,69 @@ async function sendMessage() {
         
         const data = await response.json();
         
+        // Debug: Log the response
+        console.log('API Response:', data);
+        
         // Remove thinking indicator and create streaming message
         removeThinkingIndicator();
+        
+        // Check if we have a valid answer
+        if (!data.answer) {
+            console.error('No answer in response:', data);
+            addMessageToUI('Sorry, I received an empty response. Please try again.', 'bot', { confidence: 0 });
+            saveMessageToSession('Sorry, I received an empty response. Please try again.', 'bot', { confidence: 0 });
+            return;
+        }
+        
+        // Create the streaming message
         streamingMessageId = createStreamingMessage();
         
+        // Save bot message to session BEFORE streaming starts
+        // This ensures it's saved even if something goes wrong
+        saveMessageToSession(data.answer, 'bot', {
+            confidence: data.confidence,
+            rowsFound: data.rows_found,
+            dataPreview: data.data_preview,
+            queryType: data.query_type
+        });
+        
         // Stream the response text with Claude-style chunks
+        console.log('Starting streaming with messageId:', streamingMessageId);
         await streamTextClaudeStyle(data.answer, streamingMessageId);
+        console.log('Streaming completed');
         
         // Add metadata after streaming completes
+        console.log('Adding metadata to message...');
         addMetadataToMessage(streamingMessageId, {
             confidence: data.confidence,
             rowsFound: data.rows_found,
             dataPreview: data.data_preview,
             queryType: data.query_type
         });
+        console.log('Metadata added');
         
-        // Save complete message to session
-        saveCompleteMessage(data.answer, {
-            confidence: data.confidence,
-            rowsFound: data.rows_found,
-            dataPreview: data.data_preview,
-            queryType: data.query_type
-        });
+        // NO session reload or re-render here!
+        // The message is already displayed and saved
         
         // Update health status
         checkHealth();
         
     } catch (error) {
+        console.error('Error in sendMessage:', error);
         removeThinkingIndicator();
         if (streamingMessageId) removeStreamingMessage(streamingMessageId);
-        addMessageToUI(
-            `Sorry, I encountered an error: ${error.message}. Please make sure the backend server is running.`,
-            'bot',
-            { confidence: 0 }
-        );
+        
+        const errorMsg = `Sorry, I encountered an error: ${error.message}. Please make sure the backend server is running.`;
+        addMessageToUI(errorMsg, 'bot', { confidence: 0 });
+        saveMessageToSession(errorMsg, 'bot', { confidence: 0 });
+        
         console.error('Error sending message:', error);
     } finally {
+        console.log('Finally block - cleaning up');
         isProcessing = false;
+        sendBtn.disabled = false;
         currentStreamingMessage = null;
+        console.log('Cleanup complete - NO RELOAD');
     }
 }
 
@@ -282,7 +318,7 @@ async function streamTextClaudeStyle(text, messageId) {
             const formattedText = formatBotMessage(displayedText);
             messageText.innerHTML = formattedText;
             
-            // Smooth scroll
+            // FORCE scroll during streaming - call it every update
             smoothScrollToBottom();
             
             // Fast delays
@@ -306,6 +342,8 @@ async function streamTextClaudeStyle(text, messageId) {
         const finalFormatted = formatBotMessage(displayedText);
         messageText.innerHTML = finalFormatted;
         messageText.classList.remove('streaming');
+        
+        // Final scroll after streaming completes
         smoothScrollToBottom();
     }
 }
@@ -335,18 +373,13 @@ function formatBotMessage(text) {
     formattedText = formattedText.replace(/^#\s+(.+)$/gm, '<h1 class="md-h1">$1</h1>');
     
     // Auto-detect title patterns (lines that look like titles - short, no punctuation at end, followed by content)
-    // Match lines that are short (under 60 chars), don't end with punctuation, and are followed by a newline
     formattedText = formattedText.replace(/^([A-Z][A-Za-z0-9\s:&\-–—]+(?:vs\.?|vs|and|&)?[A-Za-z0-9\s:&\-–—]*)$/gm, function(match, title) {
         title = title.trim();
-        // Only convert if it looks like a title (short, capitalized, no ending punctuation)
         if (title.length > 5 && title.length < 80 && !title.match(/[.!?,;]$/) && title.match(/^[A-Z]/)) {
-            // Check if it contains "Overview", "Highlights", "Details", "Comparison", "Summary", "Breakdown" etc.
             if (title.match(/(Overview|Highlights|Details|Comparison|Summary|Breakdown|Analysis|Key|Total|Orders|Pending|Complete|Status|vs\.?|:)/i)) {
-                // Main title (like "Pending Orders Overview")
                 if (title.match(/(Overview|Comparison|Summary|Analysis|vs\.?)/i) && title.length < 50) {
                     return `<h2 class="md-h2 md-title">${title}</h2>`;
                 }
-                // Subtitle (like "Key Highlights", "Order Details")
                 return `<h3 class="md-h3 md-subtitle">${title}</h3>`;
             }
         }
@@ -424,6 +457,9 @@ function addMetadataToMessage(messageId, metadata) {
     if (metadata.dataPreview && metadata.dataPreview.length > 0) {
         const tableContainer = createDataTable(metadata.dataPreview);
         content.appendChild(tableContainer);
+        
+        // Scroll after adding table
+        smoothScrollToBottom();
     }
     
     // Add metadata
@@ -454,9 +490,10 @@ function addMetadataToMessage(messageId, metadata) {
         }
         
         content.appendChild(meta);
+        
+        // Scroll after adding metadata
+        smoothScrollToBottom();
     }
-    
-    smoothScrollToBottom();
 }
 
 // Remove streaming message (in case of error)
@@ -466,22 +503,6 @@ function removeStreamingMessage(messageId) {
         messageDiv.remove();
     }
     currentStreamingMessage = null;
-}
-
-// Save complete message to session
-function saveCompleteMessage(text, metadata) {
-    if (!isLoadingSession && currentSessionId) {
-        const session = sessions.find(s => s.id === currentSessionId);
-        if (session) {
-            session.messages.push({ 
-                text, 
-                type: 'bot', 
-                metadata 
-            });
-            
-            saveSessionsToStorage();
-        }
-    }
 }
 
 // Sleep utility for streaming delay
@@ -634,10 +655,8 @@ function addMessageToUI(text, type, metadata = {}) {
     
     chatMessages.appendChild(messageDiv);
     
-    // Save to session ONLY if not loading a session and it's a user message
-    if (currentSessionId && !isLoadingSession && type === 'user') {
-        saveMessageToSession(text, type, metadata);
-    }
+    // DON'T save to session here - only display
+    // Saving is handled separately in sendMessage
     
     smoothScrollToBottom();
 }
@@ -683,13 +702,17 @@ function createDataTable(data) {
 
 // Smooth scroll to bottom
 function smoothScrollToBottom() {
-    // Use smooth behavior for better UX
+    // Always scroll during streaming, otherwise check if user is near bottom
     requestAnimationFrame(() => {
-        const isNearBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 150;
-        
-        // Only auto-scroll if user is near the bottom
-        if (isNearBottom || currentStreamingMessage) {
+        if (currentStreamingMessage && currentStreamingMessage.isStreaming) {
+            // Force scroll during streaming
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        } else {
+            // Normal behavior - only scroll if user is near bottom
+            const isNearBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 150;
+            if (isNearBottom) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
         }
     });
 }
@@ -733,6 +756,7 @@ function createNewSession() {
 }
 
 function loadSession(sessionId) {
+    console.log('=== loadSession called ===', sessionId);
     const session = sessions.find(s => s.id === sessionId);
     if (!session) return;
     
@@ -795,20 +819,50 @@ function updateSessionTitle(sessionId, firstMessage) {
     if (session && session.title === 'New Chat') {
         session.title = firstMessage.substring(0, 30) + (firstMessage.length > 30 ? '...' : '');
         saveSessionsToStorage();
-        renderSessions();
+        // DON'T call renderSessions() here - it can cause issues during streaming
+        // Just update the session list without reloading
+        updateSessionListItem(sessionId);
     }
 }
 
+// Update a single session list item without full re-render
+function updateSessionListItem(sessionId) {
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    
+    // Find the session item in the DOM
+    const sessionItems = sessionList.querySelectorAll('.session-item');
+    sessionItems.forEach(item => {
+        // Check if this is the right session by comparing the text or adding data attributes
+        const textSpan = item.querySelector('.session-item-text');
+        if (item.classList.contains('active')) {
+            textSpan.textContent = session.title;
+        }
+    });
+}
+
 function saveMessageToSession(text, type, metadata = {}) {
+    if (!currentSessionId) {
+        console.error('No current session ID');
+        return;
+    }
+    
     const session = sessions.find(s => s.id === currentSessionId);
     if (session) {
         session.messages.push({ text, type, metadata });
         
+        // Update session title if this is the first user message
         if (type === 'user' && session.messages.filter(m => m.type === 'user').length === 1) {
             updateSessionTitle(currentSessionId, text);
         } else {
+            // Just save to storage, DON'T trigger any re-renders
             saveSessionsToStorage();
         }
+        
+        console.log(`Message saved to session ${currentSessionId}. Total messages: ${session.messages.length}`);
+        return session.messages.length - 1; // Return index of saved message
+    } else {
+        console.error('Session not found:', currentSessionId);
     }
 }
 
@@ -818,6 +872,8 @@ function renderSessions() {
     sessions.forEach(session => {
         const item = document.createElement('div');
         item.className = 'session-item';
+        item.dataset.sessionId = session.id; // Add data attribute for identification
+        
         if (session.id === currentSessionId) {
             item.classList.add('active');
         }
@@ -855,6 +911,8 @@ function renderSessions() {
 }
 
 function clearChatDisplay() {
+    console.log('=== clearChatDisplay called ===');
+    console.log('Stack trace:', new Error().stack);
     chatMessages.innerHTML = `
         <div class="message bot-message">
             <div class="message-avatar bot-avatar">AI</div>
@@ -862,7 +920,7 @@ function clearChatDisplay() {
                 <div class="message-text">
                     <p>Hello! I'm your AI Data Assistant. I can help you query and analyze your Google Sheets data using natural language.</p>
                     <p>Try asking questions like:</p>
-                    <ul>
+                    <ul class="md-ul">
                         <li>"Show me all purchases from last month"</li>
                         <li>"What's the total revenue by product?"</li>
                         <li>"How many orders were placed today?"</li>
